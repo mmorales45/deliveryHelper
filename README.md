@@ -24,9 +24,9 @@ For the ridgeback
         - `rosnode kill /ref_base_to_world`
         - `rosnode kill /base_to_world`
 9. `cd ~/sawback_ws`	
-10. `source ~/jimas_ws/devel/setup.bash`	
+10. `source ~/Deliveryhelper/devel/setup.bash`	
 11. `rosrun intera_interface enable_robot.py -e`	
-12. `roslaunch commander launch_all.launch`
+12. `roslaunch deliveryhelper launch_all.launch`
     - Launches all the neccessary launch files
 
 On the laptop, opens RVIZ

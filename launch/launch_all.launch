@@ -1,0 +1,27 @@
+<launch>
+  <arg name="robot" default="0" doc="sets machine address (if 1 then runs on ridgeback)"/>
+
+  <include file="$(find nuridgeback_robot)/launch/basic_remote.launch">
+    <arg name="robot" value="$(arg robot)"/>
+  </include>
+
+
+  <include file="$(find nuridgeback_robot)/launch/base.launch">
+      <arg name="robot" value="$(arg robot)"/>
+  </include>
+
+  <include file="$(find nuridgeback_robot)/launch/laser_slam.launch">
+      <arg name="robot" value="$(arg robot)"/>
+  </include>
+
+  <include file="$(find nuridgeback_robot)/launch/navigation.launch">
+      <arg name="robot" value="$(arg robot)"/>
+  </include>
+
+  <include file="$(find sawback_manipulation)/launch/sawback_start.launch"/>
+  
+
+  <include file="$(find deliveryhelper)/launch/AprilTag_ridgeback.launch"/>
+  
+
+</launch>
