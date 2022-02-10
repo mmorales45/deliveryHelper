@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+#rsync -av /home/mmoral45/DeliveryHelper/src/deliveryhelper/nodes/ administrator@192.168.131.1:/home/administrator/test_dir/DeliveryHelper/src/deliveryhelper/nodes/
 import sys
 import rospy
 import moveit_commander
@@ -7,27 +7,60 @@ import geometry_msgs.msg
 from moveit_commander.conversions import pose_to_list, list_to_pose
 from std_srvs.srv import Empty, EmptyResponse
 
-TEST_POSE = [-0.1000, -2.0, 0.05, 1.4, -0.2, 1.36, -1.39]
+Looking_Pose = [-0.1000, -2.0, 0.05, 1.4, -0.2, 1.36, -1.39]
+Picking_Pose = [0.4589111328125, -1.506251953125, 0.6554072265625, 2.6850234375, -0.189880859375, 0.4033642578125, -1.39116796875]
+Dropping_Pose = [0.7886884765625, -1.4746787109375, 1.08733984375, 0.41857421875, -0.310197265625, 1.46080859375, -1.4276669921875]
+
 
 class Manipulation:
     def __init__(self): 
         
         moveit_commander.roscpp_initialize(sys.argv)
-        self.robot = moveit_commander.RobotCommander('robot/robot_description')
+        self.robot = moveit_commander.RobotCommander(robot_description='robot_description', ns="robot")
         self.scene = moveit_commander.PlanningSceneInterface()
-        self.group_arm = moveit_commander.MoveGroupCommander("robot_description/right_arm")
+        self.group_arm = moveit_commander.MoveGroupCommander("right_arm", robot_description='robot_description')
 
-        self.robot_step = rospy.Service("marco_test_pose", Empty, self.move_sawyer) 
+        rospy.sleep(1.0)
+        # self.group_arm.set_joint_value_target(Looking_Pose)
+        # (success_flag, trajectory_message,planning_time, error_code) = self.group_arm.plan()
+        # rospy.loginfo(f"Error code = {error_code}")
+        # self.group_arm.execute(trajectory_message,wait=True)
+        # self.group_arm.stop()
+        # self.group_arm.clear_pose_targets()
+        
+        self.robot_look = rospy.Service("marco_look", Empty, self.move_sawyer_look) 
+        self.robot_pick = rospy.Service("marco_pick", Empty, self.move_sawyer_pick) 
+        self.robot_drop = rospy.Service("marco_place", Empty, self.move_sawyer_drop) 
 
-    def move_sawyer(self):
-        self.group_arm.set_joint_value_target(TEST_POSE)
+    def move_sawyer_look(self,req):  
+        self.group_arm.set_joint_value_target(Looking_Pose)
         (success_flag, trajectory_message,planning_time, error_code) = self.group_arm.plan()
         rospy.loginfo(f"Error code = {error_code}")
         self.group_arm.execute(trajectory_message,wait=True)
         self.group_arm.stop()
         self.group_arm.clear_pose_targets()
+        return EmptyResponse()
+        
+    def move_sawyer_pick(self,req):  
+        self.group_arm.set_joint_value_target(Picking_Pose)
+        (success_flag, trajectory_message,planning_time, error_code) = self.group_arm.plan()
+        rospy.loginfo(f"Error code = {error_code}")
+        self.group_arm.execute(trajectory_message,wait=True)
+        self.group_arm.stop()
+        self.group_arm.clear_pose_targets()
+        return EmptyResponse()
+
+    def move_sawyer_drop(self,req):  
+        self.group_arm.set_joint_value_target(Dropping_Pose)
+        (success_flag, trajectory_message,planning_time, error_code) = self.group_arm.plan()
+        rospy.loginfo(f"Error code = {error_code}")
+        self.group_arm.execute(trajectory_message,wait=True)
+        self.group_arm.stop()
+        self.group_arm.clear_pose_targets()
+        return EmptyResponse()
 
 def main(): #The main function.
+    rospy.init_node('arm',log_level=rospy.DEBUG)
     try:
         move_arm = Manipulation()
         rospy.spin()
