@@ -34,6 +34,12 @@ On the laptop, opens RVIZ
 2. `cd ridge_ws`
 3. `roslaunch nuridgeback_robot visualization.launch viz_lab:=true`
 
+To send a package or node to the ridgeback
+
+```
+rsync -av /home/mmoral45/DeliveryHelper/src/deliveryhelper/nodes/ administrator@192.168.131.1:/home/administrator/test_dir/DeliveryHelper/src/deliveryhelper/nodes/
+```
+
 To save a map 
 
 `rosrun map_server map_saver -f marco_map  map:=/ridgeback/rtabmap/grid_map`

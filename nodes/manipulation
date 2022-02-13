@@ -6,36 +6,63 @@ import moveit_commander
 import geometry_msgs.msg
 from moveit_commander.conversions import pose_to_list, list_to_pose
 from std_srvs.srv import Empty, EmptyResponse
+from control_msgs.msg import GripperCommandAction, GripperCommandGoal
+import actionlib
+from std_msgs.msg import String
 
-Looking_Pose = [-0.1000, -2.0, 0.05, 1.4, -0.2, 1.36, -1.39]
+Looking_Pose = [0.1664384765625, -1.058619140625, 1.3546494140625, -0.1273505859375, -1.5579365234375, -0.659412109375, -1.4617265625]
 Picking_Pose = [0.4589111328125, -1.506251953125, 0.6554072265625, 2.6850234375, -0.189880859375, 0.4033642578125, -1.39116796875]
 Dropping_Pose = [0.7886884765625, -1.4746787109375, 1.08733984375, 0.41857421875, -0.310197265625, 1.46080859375, -1.4276669921875]
 
 
 class Manipulation:
     def __init__(self): 
-        
+        self.state = "Stopped"
         moveit_commander.roscpp_initialize(sys.argv)
         self.robot = moveit_commander.RobotCommander(robot_description='robot_description', ns="robot")
         self.scene = moveit_commander.PlanningSceneInterface()
         self.group_arm = moveit_commander.MoveGroupCommander("right_arm", robot_description='robot_description')
-
-        rospy.sleep(1.0)
-        # self.group_arm.set_joint_value_target(Looking_Pose)
-        # (success_flag, trajectory_message,planning_time, error_code) = self.group_arm.plan()
-        # rospy.loginfo(f"Error code = {error_code}")
-        # self.group_arm.execute(trajectory_message,wait=True)
-        # self.group_arm.stop()
-        # self.group_arm.clear_pose_targets()
+        self.client = actionlib.SimpleActionClient('/robot/end_effector/right/gripper_action', GripperCommandAction)
+        rospy.Subscriber("/delivery_state",String,self.state_callback)
+        self.pub = rospy.Publisher("/delivery_state",String, queue_size=10)
         
         self.robot_look = rospy.Service("marco_look", Empty, self.move_sawyer_look) 
         self.robot_pick = rospy.Service("marco_pick", Empty, self.move_sawyer_pick) 
         self.robot_drop = rospy.Service("marco_place", Empty, self.move_sawyer_drop) 
+        self.gripper_open_srv = rospy.Service("marco_open", Empty, self.gripper_open) 
+        self.gripper_close_srv = rospy.Service("marco_close", Empty, self.gripper_close) 
+        self.pick_and_place_srv = rospy.Service("marco_do_all", Empty, self.pick_and_place) 
+        
+        rospy.sleep(1.0)
+        
+        self.move_arm(Looking_Pose)
+        
+        self.timer = rospy.Timer(rospy.Duration(1/100), self.main_loop)
+        
 
+        
+        
+        
+    def state_callback(self,current_state):
+        self.state = current_state
+        
+        
+    def main_loop(self,timer):
+        self.pub.publish(self.state)
+        
+########################################### Services
+    def pick_and_place(self,req):
+        self.move_arm(Picking_Pose)
+        self.close_gripper()
+        self.move_arm(Dropping_Pose)
+        self.open_gripper()
+        self.move_arm(Looking_Pose)
+        
+        
     def move_sawyer_look(self,req):  
         self.group_arm.set_joint_value_target(Looking_Pose)
         (success_flag, trajectory_message,planning_time, error_code) = self.group_arm.plan()
-        rospy.loginfo(f"Error code = {error_code}")
+        rospy.loginfo(f"Movement Completed Successfully= {error_code}")
         self.group_arm.execute(trajectory_message,wait=True)
         self.group_arm.stop()
         self.group_arm.clear_pose_targets()
@@ -44,7 +71,7 @@ class Manipulation:
     def move_sawyer_pick(self,req):  
         self.group_arm.set_joint_value_target(Picking_Pose)
         (success_flag, trajectory_message,planning_time, error_code) = self.group_arm.plan()
-        rospy.loginfo(f"Error code = {error_code}")
+        rospy.loginfo(f"Movement Completed Successfully = {error_code}")
         self.group_arm.execute(trajectory_message,wait=True)
         self.group_arm.stop()
         self.group_arm.clear_pose_targets()
@@ -53,11 +80,50 @@ class Manipulation:
     def move_sawyer_drop(self,req):  
         self.group_arm.set_joint_value_target(Dropping_Pose)
         (success_flag, trajectory_message,planning_time, error_code) = self.group_arm.plan()
-        rospy.loginfo(f"Error code = {error_code}")
+        rospy.loginfo(f"Movement Completed Successfully = {error_code}")
         self.group_arm.execute(trajectory_message,wait=True)
         self.group_arm.stop()
         self.group_arm.clear_pose_targets()
         return EmptyResponse()
+    
+    def gripper_close(self,req):
+        goal = GripperCommandGoal()
+        goal.command.position= 0
+        # Fill in the goal here
+        self.client.send_goal(goal)
+        self.client.wait_for_result(rospy.Duration.from_sec(2.0))
+        return EmptyResponse()
+        
+    def gripper_open(self,req):
+        goal = GripperCommandGoal()
+        goal.command.position= 0.2
+        # Fill in the goal here
+        self.client.send_goal(goal)
+        self.client.wait_for_result(rospy.Duration.from_sec(2.0))
+        return EmptyResponse()
+####################################################### functions
+    def move_arm(self,position):
+        self.group_arm.set_joint_value_target(position)
+        (success_flag, trajectory_message,planning_time, error_code) = self.group_arm.plan()
+        rospy.loginfo(f"Movement Completed Successfully = {error_code}")
+        self.group_arm.execute(trajectory_message,wait=True)
+        self.group_arm.stop()
+        self.group_arm.clear_pose_targets()
+        
+    def close_gripper(self):
+        goal = GripperCommandGoal()
+        goal.command.position= 0
+        # Fill in the goal here
+        self.client.send_goal(goal)
+        self.client.wait_for_result(rospy.Duration.from_sec(5.0))
+        
+    def open_gripper(self):
+        goal = GripperCommandGoal()
+        goal.command.position= 0.2
+        # Fill in the goal here
+        self.client.send_goal(goal)
+        self.client.wait_for_result(rospy.Duration.from_sec(5.0))
+        
 
 def main(): #The main function.
     rospy.init_node('arm',log_level=rospy.DEBUG)
