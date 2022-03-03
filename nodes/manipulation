@@ -11,13 +11,16 @@ import actionlib
 from std_msgs.msg import String
 
 Looking_Pose = [0.1664384765625, -1.058619140625, 1.3546494140625, -0.1273505859375, -1.5579365234375, -0.659412109375, -1.4617265625]
-Picking_Pose = [0.4589111328125, -1.506251953125, 0.6554072265625, 2.6850234375, -0.189880859375, 0.4033642578125, -1.39116796875]
-Dropping_Pose = [0.7886884765625, -1.4746787109375, 1.08733984375, 0.41857421875, -0.310197265625, 1.46080859375, -1.4276669921875]
-
+Above_block = [1.125154296875, -1.6963369140625, 1.8482392578125, -3.0439, -1.8687548828125, -0.1779755859375, -1.4625390625]
+Picking_Pose = [0.978341796875, -1.312294921875, 1.8698056640625, -3.0103505859375, -1.87225390625, 0.2057236328125, -1.4613125]
+Dropping_Pose = [1.063248046875, -1.352912109375, 2.7138017578125, -2.6830439453125, -1.0654228515625, 1.3698251953125, -1.4621259765625]
+# test_pose = [0.24,0.34,0.35,1,0,0,0]
+test_pose = [0.29788,0.32563,0.31552,-0.69960,0.71356,0.0346,0.013]
 
 class Manipulation:
     def __init__(self): 
-        self.state = "Stopped"
+        self.state = String()
+        self.state.data = "stopped"
         moveit_commander.roscpp_initialize(sys.argv)
         self.robot = moveit_commander.RobotCommander(robot_description='robot_description', ns="robot")
         self.scene = moveit_commander.PlanningSceneInterface()
@@ -35,7 +38,7 @@ class Manipulation:
         
         rospy.sleep(1.0)
         
-        self.move_arm(Looking_Pose)
+        # self.move_arm(Looking_Pose)
         
         self.timer = rospy.Timer(rospy.Duration(1/100), self.main_loop)
         
@@ -49,9 +52,17 @@ class Manipulation:
         
     def main_loop(self,timer):
         self.pub.publish(self.state)
+        pos = self.group_arm.get_current_pose("right_hand")
+        # rospy.loginfo(f"ARM Position --> {pos}")
+        if(self.state.data == "deliver"):
+            self.pick_and_place(0)
+            self.state.data = "Stopped"
+            self.pub.publish(self.state)
+        
         
 ########################################### Services
     def pick_and_place(self,req):
+        self.move_arm(Above_block)
         self.move_arm(Picking_Pose)
         self.close_gripper()
         self.move_arm(Dropping_Pose)
@@ -69,29 +80,19 @@ class Manipulation:
         return EmptyResponse()
         
     def move_sawyer_pick(self,req):  
-        self.group_arm.set_joint_value_target(Picking_Pose)
-        (success_flag, trajectory_message,planning_time, error_code) = self.group_arm.plan()
-        rospy.loginfo(f"Movement Completed Successfully = {error_code}")
-        self.group_arm.execute(trajectory_message,wait=True)
-        self.group_arm.stop()
-        self.group_arm.clear_pose_targets()
+        print ("Going to :" + str(test_pose))
+        self.group_arm.set_pose_target(test_pose)
+        (result, plan, frac, errCode) = self.group_arm.plan()
+        rospy.loginfo(f"err code = {errCode}")
+        result = self.group_arm.execute(plan, wait=True)
         return EmptyResponse()
 
     def move_sawyer_drop(self,req):  
-        self.group_arm.set_joint_value_target(Dropping_Pose)
-        (success_flag, trajectory_message,planning_time, error_code) = self.group_arm.plan()
-        rospy.loginfo(f"Movement Completed Successfully = {error_code}")
-        self.group_arm.execute(trajectory_message,wait=True)
-        self.group_arm.stop()
-        self.group_arm.clear_pose_targets()
+        test_pose[2] = test_pose[2] - 0.05
         return EmptyResponse()
     
     def gripper_close(self,req):
-        goal = GripperCommandGoal()
-        goal.command.position= 0
-        # Fill in the goal here
-        self.client.send_goal(goal)
-        self.client.wait_for_result(rospy.Duration.from_sec(2.0))
+        print(self.group_arm.get_current_pose().pose)
         return EmptyResponse()
         
     def gripper_open(self,req):
