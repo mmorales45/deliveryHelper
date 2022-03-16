@@ -171,6 +171,7 @@ target_link_libraries(${PROJECT_NAME}_node
 catkin_install_python(PROGRAMS
   nodes/manipulation
   nodes/perception.py
+  nodes/perceptionPOSE.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

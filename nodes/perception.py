@@ -13,6 +13,7 @@ mp_hands = mp.solutions.hands
 class GetData(object):
 
   def __init__(self):
+        ##Initialize the publishers and subscribers
         self._bridge = CvBridge()
         rospy.Subscriber("/ridgeback/bumblebee/left/image_rect", Image, self.callback_color)
         self.pub = rospy.Publisher('/delivery_state', String, queue_size=10)
@@ -24,7 +25,7 @@ class GetData(object):
   def show_img(self,img):
       """ 
       Function:
-          Displays a top down view of the robot and ball
+          Displays image of the camera with hand landmarks
       Args:
           img- The color video stream
       Returns:
