@@ -10,6 +10,7 @@
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
 #include <string>
+#include <std_msgs/String.h>
 
 // for this node
 #include <geometry_msgs/Twist.h>
@@ -17,6 +18,7 @@
 
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <cmath>
 
 //from http://wiki.ros.org/navigation/Tutorials/SendingSimpleGoals
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient; 
@@ -40,6 +42,7 @@ class helper
             ridgeback_pause = nh.advertiseService("ridgeback_pause", &helper::pause_callback, this);
             move_to_tag = nh.advertiseService("move_to_tag", &helper::move_to_tag_callback, this);
             follow_ridgeback = nh.advertiseService("follow_ridgeback", &helper::follow_ridgeback_callback, this);
+            delivery_sub = nh.subscribe("/delivery_state",10,&helper::delivery_callback,this);
             // MoveBaseClient ac("ridgeback/move_base", true);
 
             // while(!ac.waitForServer(ros::Duration(5.0))){
@@ -73,6 +76,11 @@ class helper
             ROS_INFO("Ready!");
             timer = nh.createTimer(ros::Duration(1/100), &helper::main_loop, this);
             
+        }
+
+        void delivery_callback(const std_msgs::String & msg)
+        {
+            mode = msg.data;
         }
 
         /// \brief Makes the robot go forward using cmd_vel
@@ -175,10 +183,16 @@ class helper
             
 
             static tf2_ros::Buffer tfBuffer;
-            static geometry_msgs::TransformStamped transformStamped,transformStamped1;
+            static geometry_msgs::TransformStamped transformStamped,transformStamped1,transformStamped2;
             static tf2_ros::TransformListener tfListener(tfBuffer);
 
             try{
+                MoveBaseClient ac("ridgeback/move_base", true);
+                while(!ac.waitForServer(ros::Duration(5.0))){
+                    ROS_INFO("Waiting for the move_base action server to come up");
+                }
+                ROS_INFO("Pass the wait for server while loop");
+
                 transformStamped = tfBuffer.lookupTransform("map", "tag_1", ros::Time(0));
                 // q.setRPY(0, 0, target.orientation);
                 // ROS_INFO("The x translation %f", transformStamped.transform.translation.x);
@@ -199,13 +213,40 @@ class helper
                 base_z_orien = transformStamped1.transform.rotation.z;
                 base_w_orien = transformStamped1.transform.rotation.w;
 
+                transformStamped2 = tfBuffer.lookupTransform("map", "base_link", ros::Time(0));
+                world_base_x = transformStamped2.transform.translation.x;
+                world_base_y = transformStamped2.transform.translation.y;
+                world_base_z = transformStamped2.transform.translation.z;
+                world_base_x_orien = transformStamped2.transform.rotation.x;
+                world_base_y_orien = transformStamped2.transform.rotation.y;
+                world_base_z_orien = transformStamped2.transform.rotation.z;
+                world_base_w_orien = transformStamped2.transform.rotation.w;
+
+                double theta_base_tag = atan2(base_y,base_x);
+
+                if (base_x<4.0){
+                
                 tf::Quaternion q(base_x_orien, base_y_orien, base_z_orien, base_w_orien); //original 
                 tf::Matrix3x3 m(q);
+
+                tf::Quaternion q1(april_x_orien, april_y_orien, april_z_orien, april_w_orien); //original 
+                tf::Matrix3x3 m1(q1);
+
+                tf::Quaternion q2(world_base_x_orien, world_base_y_orien, world_base_z_orien, world_base_w_orien); //original 
+                tf::Matrix3x3 m2(q2);
                 //http://wiki.ros.org/navigation/Tutorials/RobotSetup/Odom
                 double roll, pitch, yaw;
                 m.getRPY(roll, pitch, yaw);
-                ROS_WARN("[x: %f, y: %f, z: %f, x_orien: %f,y_orien: %f,z_orien: %f,w_orien: %f, roll: %f, pitch: %f,yaw: %f] ", 
-                    april_x,april_y,april_z,april_x_orien, april_y_orien, april_z_orien, april_w_orien,roll,pitch,yaw);
+
+                double roll1, pitch1, yaw1;
+                m1.getRPY(roll1, pitch1, yaw1);
+                
+                double roll2, pitch2, yaw2;
+                m2.getRPY(roll2, pitch2, yaw2);
+
+
+                // ROS_WARN("[x: %f, y: %f, z: %f, x_orien: %f,y_orien: %f,z_orien: %f,w_orien: %f, roll: %f, pitch: %f,yaw: %f] ", 
+                //     april_x,april_y,april_z,april_x_orien, april_y_orien, april_z_orien, april_w_orien,roll,pitch,yaw);
                 ROS_WARN("[x: %f, y: %f, z: %f", 
                     base_x,base_y,base_z);
                 //maybe use ROS_INFO_STREAM?
@@ -214,53 +255,53 @@ class helper
                 ///new as of 1/27/2021
                 if (mode == "Follow")
                 {
-                    MoveBaseClient ac("ridgeback/move_base", true);
-                    if(base_y<-0.2)
-                    {
-                        ac.cancelAllGoals();
+                    // MoveBaseClient ac("ridgeback/move_base", true);
+                    // if(base_y<-0.2)
+                    // {
+                    //     ac.cancelAllGoals();
                         
-                        rotate_twist.angular.z = -0.2;
-                        ROS_WARN("BEfore PUBLISHER");
-                        cmd_vel_pub.publish(rotate_twist);
-                        ROS_WARN("after PUBLISHER");
-                        ros::Duration(0.5).sleep();
-                        rotate_twist.angular.z = 0.0;
-                        cmd_vel_pub.publish(rotate_twist);
-                    }
+                    //     rotate_twist.angular.z = -0.2;
+                    //     ROS_WARN("BEfore PUBLISHER");
+                    //     cmd_vel_pub.publish(rotate_twist);
+                    //     ROS_WARN("after PUBLISHER");
+                    //     ros::Duration(0.5).sleep();
+                    //     rotate_twist.angular.z = 0.0;
+                    //     cmd_vel_pub.publish(rotate_twist);
+                    // }
 
-                    if(base_y>0.2)
-                    {
-                        ac.cancelAllGoals();
-                        rotate_twist.angular.z = 0.2;
-                        ROS_WARN("BEfore PUBLISHER");
-                        cmd_vel_pub.publish(rotate_twist);
-                        ROS_WARN("after PUBLISHER");
-                        ros::Duration(0.5).sleep();
-                        rotate_twist.angular.z = 0.0;
-                        cmd_vel_pub.publish(rotate_twist);
-                    }
+                    // if(base_y>0.2)
+                    // {
+                    //     ac.cancelAllGoals();
+                    //     rotate_twist.angular.z = 0.2;
+                    //     ROS_WARN("BEfore PUBLISHER");
+                    //     cmd_vel_pub.publish(rotate_twist);
+                    //     ROS_WARN("after PUBLISHER");
+                    //     ros::Duration(0.5).sleep();
+                    //     rotate_twist.angular.z = 0.0;
+                    //     cmd_vel_pub.publish(rotate_twist);
+                    // }
 
 
-                    while(!ac.waitForServer(ros::Duration(5.0))){
-                        ROS_INFO("Waiting for the move_base action server to come up");
-                    }
-                    ROS_INFO("Pass the wait for server while loop");
+                    // while(!ac.waitForServer(ros::Duration(5.0))){
+                    //     ROS_INFO("Waiting for the move_base action server to come up");
+                    // }
+                    // ROS_INFO("Pass the wait for server while loop");
 
                     goal.target_pose.header.frame_id = "map";
                     // goal.target_pose.header.frame_id = "base_link";
                     goal.target_pose.header.stamp = ros::Time::now();
 
-                    goal.target_pose.pose.position.x = april_x - 1.0;
-                    // goal.target_pose.pose.position.y = april_y;
+                    goal.target_pose.pose.position.x = april_x - 0.25;
+                    goal.target_pose.pose.position.y = april_y;
                     // goal.target_pose.pose.orientation.w = 1.0;
-                    yaw = yaw + 3.14/2;
+                    yaw1 = yaw1 + 3.14/2;
 
-                    tf2::Quaternion q;
-                    q.setRPY(0, 0, yaw);
-                    q.normalize();
+                    tf2::Quaternion q_test;
+                    q_test.setRPY(0, 0, yaw1);
+                    q_test.normalize();
                     geometry_msgs::Quaternion quad_msg;
-                    quad_msg = tf2::toMsg(q);
-                    goal.target_pose.pose.orientation = quad_msg;
+                    tf2::convert(q_test, goal.target_pose.pose.orientation);
+                    // goal.target_pose.pose.orientation = quad_msg;
 
                     ROS_INFO("Sending goal");
                     ac.sendGoal(goal);
@@ -268,6 +309,10 @@ class helper
                     ros::Duration(1.0).sleep();
 
 
+                }
+                else{
+                    ac.cancelAllGoals();
+                }
                 }
             }
 
@@ -288,6 +333,7 @@ class helper
     ros::ServiceServer ridgeback_pause;
     ros::ServiceServer move_to_tag;
     ros::ServiceServer follow_ridgeback;
+    ros::Subscriber delivery_sub;
 
     geometry_msgs::Twist velocity;
     geometry_msgs::Twist rotate_twist;
@@ -319,6 +365,14 @@ class helper
     double base_y_orien;
     double base_z_orien;
     double base_w_orien;
+
+    double world_base_x;
+    double world_base_y;
+    double world_base_z;
+    double world_base_x_orien;
+    double world_base_y_orien;
+    double world_base_z_orien;
+    double world_base_w_orien;
 
     double rotate_z;
     

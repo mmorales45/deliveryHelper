@@ -15,7 +15,13 @@ Above_block = [1.125154296875, -1.6963369140625, 1.8482392578125, -3.0439, -1.86
 Picking_Pose = [0.978341796875, -1.312294921875, 1.8698056640625, -3.0103505859375, -1.87225390625, 0.2057236328125, -1.4613125]
 Dropping_Pose = [1.063248046875, -1.352912109375, 2.7138017578125, -2.6830439453125, -1.0654228515625, 1.3698251953125, -1.4621259765625]
 # test_pose = [0.24,0.34,0.35,1,0,0,0]
-test_pose = [0.29788,0.32563,0.31552,-0.69960,0.71356,0.0346,0.013]
+test_pose = [0.020486190132711753,-0.3475090206097825,0.7031482749461666,-0.9983738597775503,-0.04622301827262338,0.026502715764103797,0.02026511168911749]
+middle_step = [0.8338818141115978,-0.14848844208905254,0.8719921786452235,-0.3442978953641924,-0.9376466872873417,-0.003486153977540432,0.047597224680716026]
+blue_setup = [-0.02492050155550725,-0.33744701213081996,0.8846023787271595,-0.9988587510091532,-0.003625338696242432,0.043780008951359625,0.018744686393507713]
+blue_above = [0.01862518236534133,-0.3523580623287097,0.817307865829683,0.9953978821081686,0.07101755679924868,-0.06152463140749746,0.018822397589290246]
+blue_drop = [0.24959870362519637,-0.6118253045296361,0.8672390116682658,0.878807109619198,0.4709612881152362,-0.0616561007794199,0.04573898136454983]
+test_pose2 = [-0.06961342749050164,-0.3451727352813496,0.6928009053280001,-0.9995625642941736,0.017254290942888058,-0.023950814058632003,0.001824283871376808]
+test_pose3 = [0.016043541552670806,-0.2944772229772191,0.9970753392182432,0.9946652170333241,0.045270548967342596,-0.07918140131890399,0.04818702216801325]
 
 class Manipulation:
     def __init__(self): 
@@ -35,12 +41,13 @@ class Manipulation:
         self.gripper_open_srv = rospy.Service("marco_open", Empty, self.gripper_open) 
         self.gripper_close_srv = rospy.Service("marco_close", Empty, self.gripper_close) 
         self.pick_and_place_srv = rospy.Service("marco_do_all", Empty, self.pick_and_place) 
-        
+        self.counter = 0;
         rospy.sleep(1.0)
+        self.move_sawyer_pick(middle_step)
         
         # self.move_arm(Looking_Pose)
         
-        self.timer = rospy.Timer(rospy.Duration(1/100), self.main_loop)
+        self.timer = rospy.Timer(rospy.Duration(1.0/10.0), self.main_loop)
         
 
         
@@ -56,18 +63,34 @@ class Manipulation:
         # rospy.loginfo(f"ARM Position --> {pos}")
         if(self.state.data == "deliver"):
             self.pick_and_place(0)
-            self.state.data = "Stopped"
+            self.state.data = "Follow"
             self.pub.publish(self.state)
         
         
 ########################################### Services
     def pick_and_place(self,req):
-        self.move_arm(Above_block)
-        self.move_arm(Picking_Pose)
-        self.close_gripper()
-        self.move_arm(Dropping_Pose)
-        self.open_gripper()
-        self.move_arm(Looking_Pose)
+        # if (self.counter == 1):
+        #     self.move_arm(Above_block)
+        #     self.move_arm(Picking_Pose)
+        #     self.close_gripper()
+        #     self.move_arm(Dropping_Pose)
+        #     # rospy.sleep(1.0)
+        #     self.open_gripper()
+        
+        if (self.counter >= 0):
+            self.move_sawyer_pick(middle_step)
+            self.move_sawyer_pick(blue_setup)
+            self.move_sawyer_pick(test_pose)
+            self.close_gripper()
+            self.move_sawyer_pick(blue_above)
+            self.move_sawyer_pick(blue_drop)
+            self.open_gripper()
+            self.move_sawyer_pick(middle_step)
+        
+        self.counter = self.counter + 1
+        # self.move_arm(Looking_Pose)
+        # self.state.data = "Follow"
+        # self.pub.publish(self.state)
         
         
     def move_sawyer_look(self,req):  
@@ -80,8 +103,8 @@ class Manipulation:
         return EmptyResponse()
         
     def move_sawyer_pick(self,req):  
-        print ("Going to :" + str(test_pose))
-        self.group_arm.set_pose_target(test_pose)
+        print ("Going to :" + str(req))
+        self.group_arm.set_pose_target(req)
         (result, plan, frac, errCode) = self.group_arm.plan()
         rospy.loginfo(f"err code = {errCode}")
         result = self.group_arm.execute(plan, wait=True)
@@ -116,14 +139,14 @@ class Manipulation:
         goal.command.position= 0
         # Fill in the goal here
         self.client.send_goal(goal)
-        self.client.wait_for_result(rospy.Duration.from_sec(5.0))
+        self.client.wait_for_result(rospy.Duration.from_sec(1.0))
         
     def open_gripper(self):
         goal = GripperCommandGoal()
         goal.command.position= 0.2
         # Fill in the goal here
         self.client.send_goal(goal)
-        self.client.wait_for_result(rospy.Duration.from_sec(5.0))
+        self.client.wait_for_result(rospy.Duration.from_sec(1.0))
         
 
 def main(): #The main function.
@@ -143,3 +166,9 @@ if __name__ == "__main__":
     
     # rosrun intera_examples joint_position_keyboard.py //use this for moving the arm
     
+    # administrator@ridgeback:~$ sudo ip route add default via 129.105.69.155
+    # [sudo] password for administrator: 
+    # Error: Nexthop has invalid gateway.
+    # administrator@ridgeback:~$ sudo ip route add default via 129.105.69.155
+    # Error: Nexthop has invalid gateway.
+    # administrator@ridgeback:~$ 
