@@ -50,7 +50,8 @@ class helper
             timer = nh.createTimer(ros::Duration(1/100), &helper::main_loop, this);
             
         }
-
+        /// \brief subscribe to delivery state to get the current state of the robot.
+        ///
         void delivery_callback(const std_msgs::String & msg)
         {
             mode = msg.data;
@@ -175,6 +176,7 @@ class helper
                 transformStamped = tfBuffer.lookupTransform("map", "tag_1", ros::Time(0));
                 // q.setRPY(0, 0, target.orientation);
                 // ROS_INFO("The x translation %f", transformStamped.transform.translation.x);
+                // transform between frames to be used for finding transforms between robot and human.
                 april_x = transformStamped.transform.translation.x;
                 april_y = transformStamped.transform.translation.y;
                 april_z = transformStamped.transform.translation.z;
@@ -204,7 +206,7 @@ class helper
                 double theta_base_tag = atan2(base_y,base_x);
 
                 if (base_x<4.0){
-                
+                //Create quaternions and place in a 3x3 matrix.
                 tf::Quaternion q(base_x_orien, base_y_orien, base_z_orien, base_w_orien); //original 
                 tf::Matrix3x3 m(q);
 
@@ -214,6 +216,7 @@ class helper
                 tf::Quaternion q2(world_base_x_orien, world_base_y_orien, world_base_z_orien, world_base_w_orien); //original 
                 tf::Matrix3x3 m2(q2);
                 //http://wiki.ros.org/navigation/Tutorials/RobotSetup/Odom
+                //create RPY from quaternion
                 double roll, pitch, yaw;
                 m.getRPY(roll, pitch, yaw);
 
@@ -232,6 +235,7 @@ class helper
                 // ROS_ERROR("The z translation %f", transformStamped.transform.translation.z);
 
                 ///new as of 1/27/2021
+                //enable robot to continously follow a person.
                 if (mode == "Follow")
                 {
                     goal.target_pose.header.frame_id = "map";
@@ -258,6 +262,7 @@ class helper
 
                 }
                 else{
+                    //if not follow, cancel all the goals.
                     ac.cancelAllGoals();
                 }
                 }
@@ -273,6 +278,7 @@ class helper
         }
         
     private:
+    //private variables to be used in the class.
     ros::NodeHandle nh;
     ros::Publisher cmd_vel_pub;
     ros::ServiceServer ridgeback_forward;
