@@ -43,34 +43,7 @@ class helper
             move_to_tag = nh.advertiseService("move_to_tag", &helper::move_to_tag_callback, this);
             follow_ridgeback = nh.advertiseService("follow_ridgeback", &helper::follow_ridgeback_callback, this);
             delivery_sub = nh.subscribe("/delivery_state",10,&helper::delivery_callback,this);
-            // MoveBaseClient ac("ridgeback/move_base", true);
 
-            // while(!ac.waitForServer(ros::Duration(5.0))){
-            //     ROS_INFO("Waiting for the move_base action server to come up");
-            // }
-            // ROS_INFO("Pass the wait for server while loop");
-
-            ////works
-
-            // goal.target_pose.header.frame_id = "map";
-            // // goal.target_pose.header.frame_id = "base_link";
-            // goal.target_pose.header.stamp = ros::Time::now();
-
-            // goal.target_pose.pose.position.x = 3.0;
-            // // goal.target_pose.pose.position.y = april_y;
-            // goal.target_pose.pose.orientation.w = 1.0;
-
-            // ROS_INFO("Sending goal");
-            // ac.sendGoal(goal);
-            // ROS_INFO("Sent goal");
-            // ac.waitForResult(); 
-            // ROS_INFO("Waited for result");
-            // if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
-            //     ROS_INFO("Hooray, the base moved 1 meter forward");
-            // }
-            // else {
-            //     ROS_INFO("The base failed to move forward 1 meter for some reason");
-            // }
 
             ros::Duration(2).sleep();
             ROS_INFO("Ready!");
@@ -139,18 +112,22 @@ class helper
             }
             return true;
         }
-
+        /// \brief Service to make the robot follow person
+        ///
         bool follow_ridgeback_callback(std_srvs::Empty::Request& data, std_srvs::Empty::Response& response)
         {            
             mode = "Follow";
             return true;
         }
+        /// \brief Stop the robot from following
+        ///
         bool stop_follow_ridgeback(std_srvs::Empty::Request& data, std_srvs::Empty::Response& response)
         {            
             mode = "Empty";
             return true;
         }
-
+        /// \brief Find tfs from base to tag1
+        ///
         void find_tf()
         {
             static tf2_ros::Buffer tfBuffer;
@@ -165,6 +142,8 @@ class helper
             base_w_orien = transformStamped1.transform.rotation.w;
         }
 
+        /// \brief Main Loop
+        ///
         void main_loop(const ros::TimerEvent &)
         {
             velocity.linear.x = __lin_x;
@@ -255,38 +234,6 @@ class helper
                 ///new as of 1/27/2021
                 if (mode == "Follow")
                 {
-                    // MoveBaseClient ac("ridgeback/move_base", true);
-                    // if(base_y<-0.2)
-                    // {
-                    //     ac.cancelAllGoals();
-                        
-                    //     rotate_twist.angular.z = -0.2;
-                    //     ROS_WARN("BEfore PUBLISHER");
-                    //     cmd_vel_pub.publish(rotate_twist);
-                    //     ROS_WARN("after PUBLISHER");
-                    //     ros::Duration(0.5).sleep();
-                    //     rotate_twist.angular.z = 0.0;
-                    //     cmd_vel_pub.publish(rotate_twist);
-                    // }
-
-                    // if(base_y>0.2)
-                    // {
-                    //     ac.cancelAllGoals();
-                    //     rotate_twist.angular.z = 0.2;
-                    //     ROS_WARN("BEfore PUBLISHER");
-                    //     cmd_vel_pub.publish(rotate_twist);
-                    //     ROS_WARN("after PUBLISHER");
-                    //     ros::Duration(0.5).sleep();
-                    //     rotate_twist.angular.z = 0.0;
-                    //     cmd_vel_pub.publish(rotate_twist);
-                    // }
-
-
-                    // while(!ac.waitForServer(ros::Duration(5.0))){
-                    //     ROS_INFO("Waiting for the move_base action server to come up");
-                    // }
-                    // ROS_INFO("Pass the wait for server while loop");
-
                     goal.target_pose.header.frame_id = "map";
                     // goal.target_pose.header.frame_id = "base_link";
                     goal.target_pose.header.stamp = ros::Time::now();
