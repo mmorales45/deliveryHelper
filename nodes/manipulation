@@ -9,12 +9,13 @@ from std_srvs.srv import Empty, EmptyResponse
 from control_msgs.msg import GripperCommandAction, GripperCommandGoal
 import actionlib
 from std_msgs.msg import String
-
+## Poses for picking from the base
 Looking_Pose = [0.1664384765625, -1.058619140625, 1.3546494140625, -0.1273505859375, -1.5579365234375, -0.659412109375, -1.4617265625]
 Above_block = [1.125154296875, -1.6963369140625, 1.8482392578125, -3.0439, -1.8687548828125, -0.1779755859375, -1.4625390625]
 Picking_Pose = [0.978341796875, -1.312294921875, 1.8698056640625, -3.0103505859375, -1.87225390625, 0.2057236328125, -1.4613125]
 Dropping_Pose = [1.063248046875, -1.352912109375, 2.7138017578125, -2.6830439453125, -1.0654228515625, 1.3698251953125, -1.4621259765625]
 # test_pose = [0.24,0.34,0.35,1,0,0,0]
+## Poses for picking from the attached stand.
 test_pose = [0.020486190132711753,-0.3475090206097825,0.7031482749461666,-0.9983738597775503,-0.04622301827262338,0.026502715764103797,0.02026511168911749]
 middle_step = [0.8338818141115978,-0.14848844208905254,0.8719921786452235,-0.3442978953641924,-0.9376466872873417,-0.003486153977540432,0.047597224680716026]
 blue_setup = [-0.02492050155550725,-0.33744701213081996,0.8846023787271595,-0.9988587510091532,-0.003625338696242432,0.043780008951359625,0.018744686393507713]
@@ -24,6 +25,9 @@ test_pose2 = [-0.06961342749050164,-0.3451727352813496,0.6928009053280001,-0.999
 test_pose3 = [0.016043541552670806,-0.2944772229772191,0.9970753392182432,0.9946652170333241,0.045270548967342596,-0.07918140131890399,0.04818702216801325]
 
 class Manipulation:
+    """
+    Start the Manipulation class
+    """
     def __init__(self): 
         self.state = String()
         self.state.data = "stopped"
@@ -37,9 +41,9 @@ class Manipulation:
         
         self.robot_look = rospy.Service("marco_look", Empty, self.move_sawyer_look) 
         self.robot_pick = rospy.Service("marco_pick", Empty, self.move_sawyer_pick) 
-        self.robot_drop = rospy.Service("marco_place", Empty, self.move_sawyer_drop) 
-        self.gripper_open_srv = rospy.Service("marco_open", Empty, self.gripper_open) 
-        self.gripper_close_srv = rospy.Service("marco_close", Empty, self.gripper_close) 
+        # self.robot_drop = rospy.Service("marco_place", Empty, self.move_sawyer_drop) 
+        # self.gripper_open_srv = rospy.Service("marco_open", Empty, self.gripper_open) 
+        # self.gripper_close_srv = rospy.Service("marco_close", Empty, self.gripper_close) 
         self.pick_and_place_srv = rospy.Service("marco_do_all", Empty, self.pick_and_place) 
         self.counter = 0;
         rospy.sleep(1.0)
@@ -69,15 +73,25 @@ class Manipulation:
         
 ########################################### Services
     def pick_and_place(self,req):
-        # if (self.counter == 1):
-        #     self.move_arm(Above_block)
-        #     self.move_arm(Picking_Pose)
-        #     self.close_gripper()
-        #     self.move_arm(Dropping_Pose)
-        #     # rospy.sleep(1.0)
-        #     self.open_gripper()
-        
-        if (self.counter >= 0):
+        """ 
+        Function:
+            Move arm to specific positions
+        Args:
+            req-empty
+        Returns:
+            None
+        """
+        ##First counter will simply start the following part, second will make the robot pick up from its base, third will make it pick up from its attached stand.
+        ##pick up from base
+        if (self.counter == 1):
+            self.move_arm(Above_block)
+            self.move_arm(Picking_Pose)
+            self.close_gripper()
+            self.move_arm(Dropping_Pose)
+            # rospy.sleep(1.0)
+            self.open_gripper()
+        ##Pick up from stand
+        if (self.counter >= 2):
             self.move_sawyer_pick(middle_step)
             self.move_sawyer_pick(blue_setup)
             self.move_sawyer_pick(test_pose)
@@ -94,6 +108,14 @@ class Manipulation:
         
         
     def move_sawyer_look(self,req):  
+        """ 
+        Function:
+            Move arm to looking position
+        Args:
+            req-empty
+        Returns:
+            None
+        """
         self.group_arm.set_joint_value_target(Looking_Pose)
         (success_flag, trajectory_message,planning_time, error_code) = self.group_arm.plan()
         rospy.loginfo(f"Movement Completed Successfully= {error_code}")
@@ -103,6 +125,14 @@ class Manipulation:
         return EmptyResponse()
         
     def move_sawyer_pick(self,req):  
+        """ 
+        Function:
+            Move arm to specified position
+        Args:
+            req-empty
+        Returns:
+            None
+        """
         print ("Going to :" + str(req))
         self.group_arm.set_pose_target(req)
         (result, plan, frac, errCode) = self.group_arm.plan()
@@ -110,23 +140,31 @@ class Manipulation:
         result = self.group_arm.execute(plan, wait=True)
         return EmptyResponse()
 
-    def move_sawyer_drop(self,req):  
-        test_pose[2] = test_pose[2] - 0.05
-        return EmptyResponse()
+    # def move_sawyer_drop(self,req):  
+    #     test_pose[2] = test_pose[2] - 0.05
+    #     return EmptyResponse()
     
-    def gripper_close(self,req):
-        print(self.group_arm.get_current_pose().pose)
-        return EmptyResponse()
+    # def gripper_close(self,req):
+    #     print(self.group_arm.get_current_pose().pose)
+    #     return EmptyResponse()
         
-    def gripper_open(self,req):
-        goal = GripperCommandGoal()
-        goal.command.position= 0.2
-        # Fill in the goal here
-        self.client.send_goal(goal)
-        self.client.wait_for_result(rospy.Duration.from_sec(2.0))
-        return EmptyResponse()
+    # def gripper_open(self,req):
+    #     goal = GripperCommandGoal()
+    #     goal.command.position= 0.2
+    #     # Fill in the goal here
+    #     self.client.send_goal(goal)
+    #     self.client.wait_for_result(rospy.Duration.from_sec(2.0))
+    #     return EmptyResponse()
 ####################################################### functions
     def move_arm(self,position):
+        """ 
+        Function:
+            Move arm to specified position but not as a service
+        Args:
+            req-empty
+        Returns:
+            None
+        """
         self.group_arm.set_joint_value_target(position)
         (success_flag, trajectory_message,planning_time, error_code) = self.group_arm.plan()
         rospy.loginfo(f"Movement Completed Successfully = {error_code}")
@@ -135,6 +173,12 @@ class Manipulation:
         self.group_arm.clear_pose_targets()
         
     def close_gripper(self):
+        """ 
+        Function:
+            Close the gripper
+        Returns:
+            None
+        """
         goal = GripperCommandGoal()
         goal.command.position= 0
         # Fill in the goal here
@@ -142,6 +186,12 @@ class Manipulation:
         self.client.wait_for_result(rospy.Duration.from_sec(1.0))
         
     def open_gripper(self):
+        """ 
+        Function:
+            Open the gripper
+        Returns:
+            None
+        """
         goal = GripperCommandGoal()
         goal.command.position= 0.2
         # Fill in the goal here
@@ -165,10 +215,4 @@ if __name__ == "__main__":
     main()
     
     # rosrun intera_examples joint_position_keyboard.py //use this for moving the arm
-    
-    # administrator@ridgeback:~$ sudo ip route add default via 129.105.69.155
-    # [sudo] password for administrator: 
-    # Error: Nexthop has invalid gateway.
-    # administrator@ridgeback:~$ sudo ip route add default via 129.105.69.155
-    # Error: Nexthop has invalid gateway.
-    # administrator@ridgeback:~$ 
+
