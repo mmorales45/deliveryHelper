@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>deliveryhelper</name>
-  <version>0.0.0</version>
+  <version>0.0.1</version>
   <description>Robot that follows a person</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="mmoral45@todo.todo">mmoral45</maintainer>
+  <maintainer email="marcomorales2022@u.northwestern.edu">mmoral45</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
