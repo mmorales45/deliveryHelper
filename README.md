@@ -10,11 +10,27 @@ By Marco Morales
     ```
     pip install mediapipe
     ```
-2. Clone the DeliveryHelper repository. 
+2. Create the workspace and move into the directory.
+    ```
+    mkdir -p ~/DeliveryHelper/src
+    cd ~/DeliveryHelper/src
+    ```
+3. Clone the DeliveryHelper repository. 
     ```
     git clone git@github.com:mmorales45/deliveryhelper.git
     ```
-3. 
+4.  Catkin make in the base of the workspace
+    ```
+    cd ../
+    catkin_make
+    ``` 
+
+For installing the repositories for the Ridgeback and Sawyer, please click on the following links to get detailed instructions to setup those workspaces.
+
+[Ridgeback](https://github.com/jimas95/nu_ridgeback/blob/master/nuridgeback_robot/launch/accessories.launch)
+
+[DeliveryHelper Portfolio Post](https://mmorales45.github.io/2022/02/11/DeliveryHelper/)
+
 ## Startup
 
 To start the Ridgeback and arm follow the instructions below. Make sure to have the emergency E-STOP available at all times and keep at least one eye on the robot at all times.
