@@ -1,9 +1,23 @@
 # DevliveryHelper
 By Marco Morales
 
+[DeliveryHelper Portfolio Post](https://mmorales45.github.io/2022/02/11/DeliveryHelper/)
+
+## Starting
+
+1. Install MediaPipe
+    - This will be important for detecting hand/poses.
+    ```
+    pip install mediapipe
+    ```
+2. Clone the DeliveryHelper repository. 
+    ```
+    git clone git@github.com:mmorales45/deliveryhelper.git
+    ```
+3. 
 ## Startup
 
-To start the Ridgeback and arm follow the instructions below.
+To start the Ridgeback and arm follow the instructions below. Make sure to have the emergency E-STOP available at all times and keep at least one eye on the robot at all times.
 
 1. Make sure the power cable is unplugged from any power source.
 
@@ -22,17 +36,24 @@ To start the Ridgeback and arm follow the instructions below.
 ## Instructions to run files
 For the ridgeback
 1. `Connect to the HOSTNAME network on the Ridgeback`
+    - This will allow the computer to connect to the Ridgeback.
 2. `con_sawback`
+    - This commands sets the computer's ROS_MASTER_URI to that of the Ridgeback.
     - bash function to complete the three commands at once. The ROS_IP is set the HOSTNAME to the laptop, yours will be different than the one below.
         - `export ROS_MASTER_URI=http://192.168.131.40:11311`
         - `export ROS_IP=10.42.0.171`
         - `unset ROS_HOSTNAME`
 3. `sudo ip route add 192.168.131.0/24 via 10.42.0.1`	
+    - Assign the computer's address to that of the Ridgeback.
 4. `traceroute 192.168.131.40`	
+    - Checks to see if the computer has established a connection to both the Ridgeback and Sawyer arm.
 5. `ssh administrator@192.168.131.1`	
+    - Allows remote access to the Ridgeback.
 6. `systemctl stop ridgeback.service`	
+    - Stops the base.launch and laser_slam.launch files.
 7. `consawyer`	
-    - bash function to complete the following three commands at once. There will be no difference between laptops/users.
+    - This commands sets the computer's ROS_MASTER_URI to that of the Sawyer.
+    - bash function to complete the following three commands at once. There will be no difference between laptops/users and is present on the Ridgeback.
         - `export ROS_MASTER_URI='http://192.168.131.40:11311'`
         - `export ROS_IP='192.168.131.1'`
         - `unset ROS_HOSTNAME`
@@ -41,18 +62,24 @@ For the ridgeback
         - `rosnode kill /robot_ref_publisher`
         - `rosnode kill /ref_base_to_world`
         - `rosnode kill /base_to_world`
-9. `cd ~/sawback_ws`	
-10. `source ~test_dir/Deliveryhelper/devel/setup.bash`	
-11. `rosrun intera_interface enable_robot.py -e`	
-
-    -Enable the robot arm to be used.
-12. `roslaunch deliveryhelper launch_all.launch`
-    - Launches all the neccessary launch files
+9. `source ~test_dir/Deliveryhelper/devel/setup.bash`	
+    - Source the package directory. 
+10. `rosrun intera_interface enable_robot.py -e`	
+    - Enable the robot arm to be used.
+    - Will need to run again if the E-STOP is pushed.
+11. `roslaunch deliveryhelper launch_all.launch`
+    - Launches all the necessary launch files and nodes such as the helper, or navigation node, and the manipulation node.
 
 On the laptop, opens RVIZ
 1. `con_saywer`
 2. `cd ridge_ws`
 3. `roslaunch nuridgeback_robot visualization.launch viz_lab:=true`
+    - Launch the RVIZ configuration to see the arm and mobile base.
+
+To see the camera view of what the robot is seeing on your laptop.
+1. `source DeliveryHelper/devel/setup.bash`
+2. `rosrun deliveryhelper perception.py`
+
 
 To send a package or node to the Ridgeback, use below as an example.
 
@@ -62,13 +89,13 @@ rsync -av /home/mmoral45/DeliveryHelper/src/deliveryhelper/nodes/ administrator@
 
 To save a map 
 
-`rosrun map_server map_saver -f marco_map  map:=/ridgeback/rtabmap/grid_map1`
+`rosrun map_server map_saver -f marco_map  map:=/ridgeback/rtabmap/grid_map`
 
 To open a map 
 
 `rosrun map_server map_server marco_lab.yaml /map:=/ridgeback/rtabmap/grid_map1`
 
-- Make sure to change the grid map on RVIZ to the new topic.
+- Make sure to change the grid map on RVIZ to the new topic/grid_map1.
 
 ## TROUBLESHOOTING
 
